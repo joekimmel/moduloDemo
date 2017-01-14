@@ -1,0 +1,102 @@
+<html>
+<head>
+<script>
+
+function stopColoring(){
+  document.coloring = false;
+};
+
+function startColoring(){
+  document.coloring = true;
+  window.time = 0;
+  colorBlocks();
+};
+
+function colorBlocks(){
+  // check to see if the stop button was pressed since the last time we got scheduled
+  if(!document.coloring){ return; }
+
+  // get our modulo base as set by the user
+  var dividend = parseInt(document.getElementById("moduloSlider").value);
+
+  // iterate through the blocks and color them
+  for(var i=0; i < document.numBlocks; ++i){
+    // get the ith block
+    var block =  document.getElementById("block"+i);
+
+    if( (window.time + i) % dividend == 0) {
+      block.style.backgroundColor = "black";
+    } else {
+      block.style.backgroundColor = "white";
+    }
+  }
+
+  window.time += 1;
+
+  // reset "time" to zero every so often because there is such a thing as
+  //  "a number so big the browser will get confused"
+  if(window.time == 10000) { window.time = 0; }
+
+  if(document.coloring){
+    window.setTimeout(colorBlocks, 600);
+  }
+};
+
+function documentReadyCallback(){
+  var blocks = "";
+  var numBlocks = 20;
+  for(var i = 0; i < numBlocks; ++i)
+  {
+    blocks += "<div id=\"block" + i + "\" class=\"block\"></div>";
+  }
+
+  document.numBlocks = numBlocks;
+  document.getElementById("blocks-container").innerHTML = blocks;
+
+  document.getElementById("start-button").onclick = startColoring;
+  document.getElementById("stop-button").onclick =  stopColoring;
+
+  document.getElementById("moduloSlider").oninput = function() {
+    document.getElementById("moduloLabel").innerHTML = document.getElementById("moduloSlider").value;
+  };
+};
+
+
+if (
+    document.readyState === "complete" ||
+    (document.readyState !== "loading" && !document.documentElement.doScroll)
+) {
+  documentReadyCallback();
+} else {
+  document.addEventListener("DOMContentLoaded", documentReadyCallback);
+}
+</script>
+<style>
+#blocks-container
+{
+  width: 75%;
+  display: flex;
+  float: left;
+}
+
+.block
+{
+  width: 15px;
+  height: 15px;
+  border: black;
+  border-width: 1px;
+  border-style: solid;
+  margin: 2px;
+}
+</style>
+<title> Hello, Modulo</title>
+<body>
+<div id="blocks-container"></div>
+<div id="form-container">
+<button id="start-button">Start</button>
+<button id="stop-button">Stop</button>
+Modulo Base: <span id="moduloLabel">2</span>
+<input id="moduloSlider" type="range" min="2" max="10" step="1" value="2">
+</div>
+</body>
+</html>
