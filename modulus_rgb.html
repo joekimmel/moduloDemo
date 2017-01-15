@@ -1,0 +1,162 @@
+<html>
+<head>
+<script>
+
+function stopColoring(){
+  document.coloring = false;
+};
+
+function startColoring(){
+  document.coloring = true;
+  window.time = 0;
+  colorBlocks();
+};
+
+function colorBlocks(){
+  // check to see if the stop button was pressed since the last time we got scheduled
+  if(!document.coloring){ return; }
+
+  // get our modulo base as set by the user
+  var redDividend = parseInt(document.getElementById("moduloSliderRed").value);
+  var greenDividend = parseInt(document.getElementById("moduloSliderGreen").value);
+  var blueDividend = parseInt(document.getElementById("moduloSliderBlue").value);
+
+
+  var moduloSwitch = true; // i might do something more complicated later..
+  moduloSwitch = document.getElementById("moduloBinaryYes").checked;
+
+  // iterate through the blocks and color them
+  for(var i=0; i < document.numBlocks; ++i){
+    // get the ith block
+    var block =  document.getElementById("block"+i);
+    var colorString = "";
+
+    if(moduloSwitch) {
+      colorString += "#"
+      if( (window.time + i) % redDividend == 0) {
+        colorString += "F";
+      } else {
+        colorString += "0";
+      }
+      if( (window.time + i) % greenDividend == 0) {
+        colorString += "F";
+      } else {
+        colorString += "0";
+      }
+      if( (window.time + i) % blueDividend == 0) {
+        colorString += "F";
+      } else {
+        colorString += "0";
+      }
+    } // end if-moduloSwitch
+    else {
+      var red = Math.round(((window.time + i) % redDividend) / (redDividend - 1) * 255);
+      var green = Math.round(((window.time + i) % greenDividend) / (greenDividend - 1) * 255);
+      var blue = Math.round(((window.time + i) % blueDividend) / (blueDividend - 1) * 255);
+      colorString += "rgb("+red+","+green+","+blue+")";
+    } // end else from if moduloSwitch
+    block.style.backgroundColor = colorString;
+  } // end of for-loop
+
+  window.time += 1;
+
+  // reset "time" to zero every so often because there is such a thing as
+  //  "a number so big the browser will get confused"
+  if(window.time == 10000) { window.time = 0; }
+
+  if(document.coloring){
+    window.setTimeout(colorBlocks, 900);
+  }
+};
+
+function documentReadyCallback(){
+  var blocks = "";
+  var numBlocks = 500;
+  for(var i = 0; i < numBlocks; ++i)
+  {
+    blocks += "<div id=\"block" + i + "\" class=\"block\"></div>";
+  }
+
+  document.numBlocks = numBlocks;
+  document.getElementById("blocks-container").innerHTML = blocks;
+
+  document.getElementById("start-button").onclick = startColoring;
+  document.getElementById("stop-button").onclick =  stopColoring;
+
+  document.getElementById("moduloSliderRed").oninput = function() {
+    document.getElementById("moduloLabelRed").innerHTML = document.getElementById("moduloSliderRed").value;
+  };
+ document.getElementById("moduloSliderBlue").oninput = function() {
+    document.getElementById("moduloLabelBlue").innerHTML = document.getElementById("moduloSliderBlue").value;
+  };
+ document.getElementById("moduloSliderGreen").oninput = function() {
+    document.getElementById("moduloLabelGreen").innerHTML = document.getElementById("moduloSliderGreen").value;
+  };
+};
+
+
+if (
+    document.readyState === "complete" ||
+    (document.readyState !== "loading" && !document.documentElement.doScroll)
+) {
+  documentReadyCallback();
+} else {
+  document.addEventListener("DOMContentLoaded", documentReadyCallback);
+}
+</script>
+<style>
+#blocks-container
+{
+  width: 75%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  float: left;
+  height: 100%;
+  margin: 20px;
+}
+
+.block
+{
+  width: 15px;
+  height: 15px;
+  border: black;
+  border-width: 1px;
+  border-style: solid;
+  margin: 2px;
+}
+
+.color-slider
+{
+  padding: 4px;
+  margin: 2px;
+}
+</style>
+<title> Hello, Modulo</title>
+<body>
+<div id="blocks-container"></div>
+<div id="form-container">
+<button id="start-button">Start</button>
+<button id="stop-button">Stop</button>
+
+<div class="color-slider">
+  Red Modulo Base: <span id="moduloLabelRed">2</span><br>
+  <input id="moduloSliderRed" type="range" min="2" max="50" step="1" value="2">
+</div>
+
+<div class="color-slider">
+  Green Modulo Base: <span id="moduloLabelGreen">2</span><br>
+  <input id="moduloSliderGreen" type="range" min="2" max="50" step="1" value="2">
+</div>
+
+<div class="color-slider">
+  Blue Modulo Base: <span id="moduloLabelBlue">2</span><br>
+  <input id="moduloSliderBlue" type="range" min="2" max="50" step="1" value="2">
+</div>
+
+<input type="radio" name="moduloBinary" value="yes" id="moduloBinaryYes" checked>RGB 100% if remainder is zero, 0% otherwise<br>
+<input type="radio" name="moduloBinary" value="no">RGB value scaled by remainder<br>
+
+</div>
+</body>
+</html>
