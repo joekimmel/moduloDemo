@@ -2,6 +2,175 @@
 <head>
 <script>
 
+// helper function to format Arduino code so that it displays correctly on a webpage
+// otherwise a lot of characters will be interpreted as HTML control characters.
+function htmlFormat(rawString){
+  return rawString.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+}
+
+function showArduinoCode(){
+
+  // get our modulo base as set by the user
+  var redDivisor = parseInt(document.getElementById("moduloSliderRed").value);
+  var greenDivisor = parseInt(document.getElementById("moduloSliderGreen").value);
+  var blueDivisor = parseInt(document.getElementById("moduloSliderBlue").value);
+  var delay = parseInt(document.getElementById("delaySlider").value);
+
+  var moduloAllOrNothing = document.getElementById("moduloBinaryYes").checked;
+
+  gradient_code = htmlFormat(`
+//This lets us use a special NeoPixel library.
+#include <Adafruit_NeoPixel.h>
+
+// change the PIN number below depending on where you wire is attached
+#define PIN      1
+
+// This is the number of LED lights in your strip. It should be 15
+#define N_LEDS 15
+
+// Modulo divisors for each color.
+// you can think of the red divisor as "how often will a pixel's red value be fully on?"
+// so if we set RED_MOD_DIVISOR to 3, then the red channel will be off, halfway on, and fully on,
+// over and over again.  If we set it to 4, then it'll be off, 33%, 66%, and 100%.
+// but the final color will be determined by whether the blue and green components are also on.
+// so in this coloring algorithm, the MOD_DIVISOR determines the length of the gradient-cycle.
+
+// setting all three to different numbers, especially numbers that are large and don't share a common divisor,
+// will create complicated patterns.
+#define RED_MOD_DIVISOR ${redDivisor}
+#define GREEN_MOD_DIVISOR ${greenDivisor}
+#define BLUE_MOD_DIVISOR ${blueDivisor}
+
+// this could be any integer between 1 - 255.  bigger numbers are brighter.
+// If you want to change it, try going up or down by 100, or in other words make a relatively large change.
+#define MAX_BRIGHTNESS 130
+
+// the time each LED pixel will stay a given color, in milliseconds.
+#define DELAY ${delay}
+
+// create a representation of our pixel strip, named "strip", using the special neoPixel library
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, PIN, NEO_RGBW + NEO_KHZ800);
+
+// we keep a counter for "time" - it increases each time our display loop function runs
+unsigned int time = 0;
+
+// the Gemma board will run this function once at the beginning.
+void setup() {
+  // initialize our strip using the NeoPixel library
+  strip.begin();
+}
+
+void loop() {
+  uint8_t R;
+  uint8_t G;
+  uint8_t B;
+
+  // increase "time" by 1 each time the loop function is called.
+  time = time + 1;
+
+  // loop through the LED pixels and scale each pixel's
+  // red, green, and blue by how close the remainder is to the divisor.
+  for(uint8_t i = 0; i < N_LEDS; ++i){
+    R = (float((i + time) % RED_MOD_DIVISOR) / float(RED_MOD_DIVISOR - 1)) * MAX_BRIGHTNESS;
+    G = (float((i + time) % GREEN_MOD_DIVISOR) / float(GREEN_MOD_DIVISOR - 1)) * MAX_BRIGHTNESS;
+    B = (float((i + time) % BLUE_MOD_DIVISOR) / float(BLUE_MOD_DIVISOR - 1)) * MAX_BRIGHTNESS;
+
+    strip.setPixelColor(i, strip.Color(R,G,B));
+  }
+
+  // show the changes we've made
+  strip.show();
+
+  // pause
+  delay(DELAY);
+}
+  `);
+
+
+  all_or_nothing_code = htmlFormat(`
+// use a special NeoPixel library.
+#include <Adafruit_NeoPixel.h>
+
+// change the PIN number below depending on where you wire is attached
+#define PIN      1
+
+// This is the number of LED lights in your strip. It should be 15
+#define N_LEDS 15
+
+// Modulo divisors for each color.
+// you can think of the red divisor as "how often will a pixel's red value be on instead of off"
+// so if we set RED_MOD_DIVISOR to 2, then each alternating pixel will have its red component on
+// but the final color will be determined by whether the blue and green components are also on.
+
+// setting all three to different numbers, especially numbers that are large and don't share a common divisor,
+// will create complicated patterns.
+#define RED_MOD_DIVISOR ${redDivisor}
+#define GREEN_MOD_DIVISOR ${greenDivisor}
+#define BLUE_MOD_DIVISOR ${blueDivisor}
+
+// this could be any integer between 1 - 255.  bigger numbers are brighter.
+// If you want to change it, try going up or down by 100, or in other words make a relatively large change.
+#define MAX_BRIGHTNESS 130
+
+// the time each LED pixel will stay a given color, in milliseconds.
+#define DELAY ${delay}
+
+// create a representation of our pixel strip, named "strip", using the special neoPixel library
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, PIN, NEO_RGBW + NEO_KHZ800);
+
+// we keep a counter for "time" - it increases each time our display loop function runs
+unsigned int time = 0;
+
+
+// the Gemma board will run this function once at the beginning.
+void setup() {
+  // initialize our strip using the NeoPixel library
+  strip.begin();
+}
+
+// the Gemma board will run this function over and over again.
+void loop() {
+
+  // increase time by 1.
+  time = time + 1;
+
+  // loop through each LED and set its red, green, and blue components
+  // either to zero or to MAX_BRIGHTNESS
+  for(int i=0; i < N_LEDS; ++i){
+    int R = 0;
+    int G = 0;
+    int B = 0;
+    if( (i + time) % RED_MOD_DIVISOR == 0){
+      R = MAX_BRIGHTNESS;
+    }
+    if( (i + time) % GREEN_MOD_DIVISOR == 0){
+      G = MAX_BRIGHTNESS;
+    }
+    if( (i + time) % BLUE_MOD_DIVISOR == 0){
+      B = MAX_BRIGHTNESS;
+    }
+
+    // send the color to our strip's pixel number "i".
+    strip.setPixelColor(i, strip.Color(R,G,B));
+  } // this closing-bracked signals the end of the for-loop
+
+  // show the changes we've made
+  strip.show();
+
+  // pause between changes
+  delay(DELAY);
+}
+`);
+
+  if(moduloAllOrNothing){
+    document.getElementById('code-container').innerHTML = all_or_nothing_code;
+  }
+  else {
+    document.getElementById('code-container').innerHTML = gradient_code;
+  }
+};
+
+
 function stopColoring(){
   document.coloring = false;
 };
@@ -22,7 +191,7 @@ function colorBlocks(){
   var blueDividend = parseInt(document.getElementById("moduloSliderBlue").value);
 
 
-  var moduloSwitch = true; // i might do something more complicated later..
+  var moduloSwitch = true;
   moduloSwitch = document.getElementById("moduloBinaryYes").checked;
 
   // iterate through the blocks and color them
@@ -65,23 +234,25 @@ function colorBlocks(){
   if(window.time == 10000) { window.time = 0; }
 
   if(document.coloring){
-    window.setTimeout(colorBlocks, 900);
+  let delay = parseInt(document.getElementById("delaySlider").value);
+    window.setTimeout(colorBlocks, delay);
   }
 };
 
 function documentReadyCallback(){
   var blocks = "";
-  var numBlocks = 500;
+  var numBlocks = 15;
   for(var i = 0; i < numBlocks; ++i)
   {
     blocks += "<div id=\"block" + i + "\" class=\"block\"></div>";
   }
 
   document.numBlocks = numBlocks;
-  document.getElementById("blocks-container").innerHTML = blocks;
+  document.getElementById("blocks-container").innerHTML = blocks + "<div id=\"code-container\"></div>";
 
   document.getElementById("start-button").onclick = startColoring;
   document.getElementById("stop-button").onclick =  stopColoring;
+  document.getElementById("show-Arduino-code").onclick = showArduinoCode;
 
   document.getElementById("moduloSliderRed").oninput = function() {
     document.getElementById("moduloLabelRed").innerHTML = document.getElementById("moduloSliderRed").value;
@@ -91,6 +262,9 @@ function documentReadyCallback(){
   };
  document.getElementById("moduloSliderGreen").oninput = function() {
     document.getElementById("moduloLabelGreen").innerHTML = document.getElementById("moduloSliderGreen").value;
+  };
+  document.getElementById("delaySlider").oninput = function() {
+    document.getElementById("delayLabel").innerHTML = document.getElementById("delaySlider").value;
   };
 };
 
@@ -114,6 +288,11 @@ if (
   float: left;
   height: 100%;
   margin: 20px;
+}
+
+.button-container
+{
+  padding: 10px;
 }
 
 .block
@@ -141,22 +320,30 @@ if (
 
 <div class="color-slider">
   Red Modulo Base: <span id="moduloLabelRed">2</span><br>
-  <input id="moduloSliderRed" type="range" min="2" max="50" step="1" value="2">
+  <input id="moduloSliderRed" type="range" min="2" max="21" step="1" value="2">
 </div>
 
 <div class="color-slider">
   Green Modulo Base: <span id="moduloLabelGreen">2</span><br>
-  <input id="moduloSliderGreen" type="range" min="2" max="50" step="1" value="2">
+  <input id="moduloSliderGreen" type="range" min="2" max="21" step="1" value="2">
 </div>
 
 <div class="color-slider">
   Blue Modulo Base: <span id="moduloLabelBlue">2</span><br>
-  <input id="moduloSliderBlue" type="range" min="2" max="50" step="1" value="2">
+  <input id="moduloSliderBlue" type="range" min="2" max="21" step="1" value="2">
 </div>
 
 <input type="radio" name="moduloBinary" value="yes" id="moduloBinaryYes" checked>RGB 100% if remainder is zero, 0% otherwise<br>
-<input type="radio" name="moduloBinary" value="no">RGB value scaled by remainder<br>
+<input type="radio" name="moduloBinary" value="no">RGB scaled by remainder<br>
 
+<div class="color-slider">
+  Delay: <span id="delayLabel">400</span> (milliseconds)<br>
+  <input id="delaySlider" type="range" min="50" max="2500" step="50" value="800">
+</div>
+
+<div class="button-container">
+  <button id="show-Arduino-code">Show Arduino Code</button>
+</div>
 </div>
 </body>
 </html>
