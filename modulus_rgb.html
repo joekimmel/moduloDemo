@@ -168,6 +168,7 @@ void loop() {
   else {
     document.getElementById('code-container').innerHTML = gradient_code;
   }
+  document.arduinoCodeShown = true;
 };
 
 
@@ -247,6 +248,7 @@ function documentReadyCallback(){
     blocks += "<div id=\"block" + i + "\" class=\"block\"></div>";
   }
 
+  document.arduinoCodeShown = false;
   document.numBlocks = numBlocks;
   document.getElementById("blocks-container").innerHTML = blocks + "<div id=\"code-container\"></div>";
 
@@ -254,18 +256,32 @@ function documentReadyCallback(){
   document.getElementById("stop-button").onclick =  stopColoring;
   document.getElementById("show-Arduino-code").onclick = showArduinoCode;
 
+  conditionallyShowArduinoCode = function() {
+    if(document.arduinoCodeShown) {
+      showArduinoCode();
+    }
+  };
+
   document.getElementById("moduloSliderRed").oninput = function() {
     document.getElementById("moduloLabelRed").innerHTML = document.getElementById("moduloSliderRed").value;
+    conditionallyShowArduinoCode();
   };
  document.getElementById("moduloSliderBlue").oninput = function() {
     document.getElementById("moduloLabelBlue").innerHTML = document.getElementById("moduloSliderBlue").value;
+    conditionallyShowArduinoCode();
   };
  document.getElementById("moduloSliderGreen").oninput = function() {
     document.getElementById("moduloLabelGreen").innerHTML = document.getElementById("moduloSliderGreen").value;
+    conditionallyShowArduinoCode();
   };
   document.getElementById("delaySlider").oninput = function() {
     document.getElementById("delayLabel").innerHTML = document.getElementById("delaySlider").value;
+    conditionallyShowArduinoCode();
   };
+
+
+  document.getElementById("moduloBinaryNo").onclick = conditionallyShowArduinoCode;
+  document.getElementById("moduloBinaryYes").onclick = conditionallyShowArduinoCode;
 };
 
 
@@ -334,7 +350,7 @@ if (
 </div>
 
 <input type="radio" name="moduloBinary" value="yes" id="moduloBinaryYes" checked>RGB 100% if remainder is zero, 0% otherwise<br>
-<input type="radio" name="moduloBinary" value="no">RGB scaled by remainder<br>
+<input type="radio" name="moduloBinary" value="no" id="moduloBinaryNo">RGB scaled by remainder<br>
 
 <div class="color-slider">
   Delay: <span id="delayLabel">800</span> (milliseconds)<br>
