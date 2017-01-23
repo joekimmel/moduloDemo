@@ -16,7 +16,7 @@ function showArduinoCode(){
   var delay = parseInt(document.getElementById("delaySlider").value);
 
   let arduinoCode = htmlFormat(`
-//This runs a special library. Don’t worry about it
+// this includes a special Neopixel library for talking to the LED strips
 #include <Adafruit_NeoPixel.h>
 #include <Math.h>
 
@@ -24,7 +24,7 @@ function showArduinoCode(){
 #define PIN      1
 
 // This is the number of LED lights in your strip. It should be 15
-#define N_LEDS 5
+#define N_LEDS 15
 
 // don't change this - there's always 360 degrees in a circle.
 #define MAX_HUE 360
