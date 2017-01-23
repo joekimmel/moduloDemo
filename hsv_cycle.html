@@ -220,8 +220,9 @@ function colorBlocks(){
     let hue = ((Math.cos(2*Math.PI * (window.time + (i*pixelDiff)) / huePeriod) + 1) / 2);
     let val = 1.0;
     if(valuePeriod > 0) {
-      // browser colors are darker than the pixels are so we cheat the value up a little.
-      val = ((Math.cos(2*Math.PI * (window.time + (i*pixelDiff)) / valuePeriod) + 1.2) / 2.1);
+      val = ((Math.cos(2*Math.PI * (window.time + (i*pixelDiff)) / valuePeriod) + 1) / 2);
+      // browser colors are darker than the pixels are so we cheat the value up.
+      if(val < 0.4 && val > 0.02) { val = 0.4; }
     }
     let rgb = HSVtoRGB(hue, 1.0, val);
     let colorString = "rgb("+rgb.r+","+rgb.g+","+rgb.b+")";
