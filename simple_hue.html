@@ -1,0 +1,313 @@
+<html>
+<head>
+<script>
+
+// helper function to format Arduino code so that it displays correctly on a webpage
+// otherwise a lot of characters will be interpreted as HTML control characters.
+function htmlFormat(rawString){
+  return rawString.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+}
+
+function showArduinoCode(){
+  var hueValue = parseFloat(document.getElementById("hueValueSlider").value);
+  // var valuePeriod = parseInt(document.getElementById("valuePeriodSlider").value);
+  // var pixelDiff = parseInt(document.getElementById("pixelDifferenceSlider").value);
+
+  var delay = 100;
+
+  let arduinoCode = htmlFormat(`
+// this includes a special Neopixel library for talking to the LED strips
+#include <Adafruit_NeoPixel.h>
+#include <Math.h>
+
+// change the PIN number below to either 0 or 1 depending on where you date wire is attached
+#define PIN      1
+
+// This is the number of LED lights in your strip. It should be 8
+#define N_LEDS 8
+
+// value is (kinda) how bright they'll get, below 0.3 is a little dim, above is quite bright
+#define MAX_VALUE 0.99
+
+// Hue means "which color".  HSV colorspace maps the ROYGBIV rainbow onto a circle, so that Violet and Red meet where 360 turns to 0. 
+#define HUE ${hueValue * 360}
+
+// length of pause (milliseconds) each time through our main loop.
+// 5 - 50
+#define DELAY ${delay}
+
+
+// this struct lets us group the three variables for RGB into one package with a single variable name
+typedef struct {
+    double r;       // percent
+    double g;       // percent
+    double b;       // percent
+} RgbColor;
+
+// this struct is for grouping the three HSV variables together.
+typedef struct {
+    double h;       // angle in degrees
+    double s;       // percent
+    double v;       // percent
+} HsvColor;
+
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, PIN, NEO_RGBW + NEO_KHZ800);
+
+// this function converts HSV to RGB. i found it online.
+// the important thing to understand is that in HSV, it's easy to change hue ("color") in rainbow-order
+// but the NeoPixel library only understands RGB, so we need to convert HSV to RGB.
+// there's good wikipedia articles on HSV color space if you want to learn more.
+RgbColor hsv2rgb(HsvColor in)
+{
+    double      hh, p, q, t, ff;
+    long        i;
+    RgbColor   out;
+
+    if(in.s <= 0.0) {       // < is bogus, just shuts up warnings
+        out.r = in.v;
+        out.g = in.v;
+        out.b = in.v;
+        return out;
+    }
+    hh = in.h;
+    if(hh >= 360.0) hh = 0.0;
+    hh /= 60.0;
+    i = (long)hh;
+    ff = hh - i;
+    p = in.v * (1.0 - in.s);
+    q = in.v * (1.0 - (in.s * ff));
+    t = in.v * (1.0 - (in.s * (1.0 - ff)));
+
+    switch(i) {
+    case 0:
+        out.r = in.v;
+        out.g = t;
+        out.b = p;
+        break;
+    case 1:
+        out.r = q;
+        out.g = in.v;
+        out.b = p;
+        break;
+    case 2:
+        out.r = p;
+        out.g = in.v;
+        out.b = t;
+        break;
+
+    case 3:
+        out.r = p;
+        out.g = q;
+        out.b = in.v;
+        break;
+    case 4:
+        out.r = t;
+        out.g = p;
+        out.b = in.v;
+        break;
+    case 5:
+    default:
+        out.r = in.v;
+        out.g = p;
+        out.b = q;
+        break;
+    }
+    return out;
+}
+
+void setup() {
+  strip.begin();
+}
+
+
+unsigned int time = 0;
+
+void loop() {
+  time++;
+
+  HsvColor hsv;
+
+  // loop through each pixel and set them
+  for(uint8_t i = 0; i < N_LEDS; ++i){
+
+    // cosine is a "circular" function -- it rerturns a value that oscillates smoothly up and down
+    // we use cosine to scale hue and value, while keeping the color saturated.
+    hsv.h = HUE;
+    hsv.s = 1.0;
+    hsv.v = MAX_VALUE;
+
+    // now convert the hsv color to rgb
+    RgbColor rgb = hsv2rgb(hsv);
+    // and use that rgb color to set the color of the current pixel
+    strip.setPixelColor(i, strip.Color(rgb.r * 255, rgb.g * 255, rgb.b * 255));
+  }
+  // send all the changes to the neoPixel strip so we can see them
+  strip.show();
+
+  // pause
+  delay(DELAY);
+}
+  `);
+
+
+  document.getElementById('code-container').innerHTML = arduinoCode;
+  document.arduinoCodeShown = true;
+};
+
+
+function stopColoring(){
+  document.coloring = false;
+};
+
+function startColoring(){
+  document.coloring = true;
+  window.time = 0;
+  colorBlocks();
+};
+
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+};
+
+function colorBlocks(){
+  // check to see if the stop button was pressed since the last time we got scheduled
+  if(!document.coloring){ return; }
+
+  // get our user inputs
+  var hueValue = parseFloat(document.getElementById("hueValueSlider").value);
+
+  // iterate through the blocks and color them
+  for(let i=0; i < document.numBlocks; ++i){
+    // get the ith block
+    let block =  document.getElementById("block"+i);
+
+    let hue = hueValue;
+    let val = 1.0;
+    let rgb = HSVtoRGB(hue, 1.0, val);
+    let colorString = "rgb("+rgb.r+","+rgb.g+","+rgb.b+")";
+
+
+    block.style.backgroundColor = colorString;
+  } // end of for-loop
+
+  window.time += 1;
+  if(window.time == 10000) { window.time = 0; }
+
+  if(document.coloring){
+  let delay = 150;
+    window.setTimeout(colorBlocks, delay);
+  }
+};
+
+function documentReadyCallback(){
+  var blocks = "";
+  var numBlocks = 8;
+  for(var i = 0; i < numBlocks; ++i)
+  {
+    blocks += "<div id=\"block" + i + "\" class=\"block\"></div>";
+  }
+
+  document.arduinoCodeShown = false;
+
+  document.numBlocks = numBlocks;
+  document.getElementById("blocks-container").innerHTML = blocks + "<div id=\"code-container\"></div>";
+
+  document.getElementById("start-button").onclick = startColoring;
+  document.getElementById("stop-button").onclick =  stopColoring;
+  document.getElementById("show-Arduino-code").onclick = showArduinoCode;
+
+  conditionallyShowArduinoCode = function() {
+    if(document.arduinoCodeShown) {
+      showArduinoCode();
+    }
+  };
+
+  document.getElementById("hueValueSlider").oninput = function() {
+    document.getElementById("hueValueLabel").innerHTML = document.getElementById("hueValueSlider").value;
+    conditionallyShowArduinoCode();
+  };
+};
+
+
+if (
+    document.readyState === "complete" ||
+    (document.readyState !== "loading" && !document.documentElement.doScroll)
+) {
+  documentReadyCallback();
+} else {
+  document.addEventListener("DOMContentLoaded", documentReadyCallback);
+}
+</script>
+<style>
+#blocks-container
+{
+  width: 75%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  float: left;
+  height: 100%;
+  margin: 20px;
+}
+
+.button-container
+{
+  padding: 10px;
+}
+
+.block
+{
+  width: 15px;
+  height: 15px;
+  border: black;
+  border-width: 1px;
+  border-style: solid;
+  margin: 2px;
+}
+
+.color-slider
+{
+  padding: 4px;
+  margin: 2px;
+}
+</style>
+<title> Hello, Color</title>
+<body>
+<div id="blocks-container"></div>
+<div id="form-container">
+<button id="start-button">Start</button>
+<button id="stop-button">Stop</button>
+</div>
+
+<div class="color-slider">
+  Hue (color): <span id="hueValueLabel">0.5</span><br>
+  <input id="hueValueSlider" type="range" min="0" max="1" step="0.02" value="0.5">
+</div>
+
+
+<div class="button-container">
+  <button id="show-Arduino-code">Show Arduino Code</button>
+</div>
+</div>
+</body>
+</html>
